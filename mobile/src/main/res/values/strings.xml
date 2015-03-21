@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Watch Face Builder</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Save</string>
+
+    <string-array name="face_type_array">
+        <item>Square</item>
+        <item>Round</item>
+    </string-array>
+</resources>

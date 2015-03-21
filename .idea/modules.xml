@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/SampleWatchFace.iml" filepath="$PROJECT_DIR$/SampleWatchFace.iml" />
+      <module fileurl="file://$PROJECT_DIR$/YellowWatchFace.iml" filepath="$PROJECT_DIR$/YellowWatchFace.iml" />
+      <module fileurl="file://$PROJECT_DIR$/drawinglibrary/drawinglibrary.iml" filepath="$PROJECT_DIR$/drawinglibrary/drawinglibrary.iml" />
+      <module fileurl="file://$PROJECT_DIR$/mobile/mobile.iml" filepath="$PROJECT_DIR$/mobile/mobile.iml" />
+      <module fileurl="file://$PROJECT_DIR$/wear/wear.iml" filepath="$PROJECT_DIR$/wear/wear.iml" />
+    </modules>
+  </component>
+</project>
+

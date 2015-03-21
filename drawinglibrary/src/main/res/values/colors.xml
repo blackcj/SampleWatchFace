@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="yellow">#E9C617</color>
+    <color name="off_white">#ffdddddd</color>
+    <color name="tan">#FFEFBF</color>
+    <color name="gradient_start">#aaFFFFFF</color>
+    <color name="gradient_end">#00FFFFFF</color>
+</resources>
