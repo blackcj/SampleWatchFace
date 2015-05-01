@@ -55,7 +55,7 @@ public class CheckeredFacePaint extends FacePaint {
         mSecondPaint.setStrokeCap(Paint.Cap.ROUND);
 
         textPaint.setColor(Color.WHITE);
-        textPaint.setTextSize(24);
+        textPaint.setTextSize(16 * mRatio);
         textPaint.setTypeface(Typeface.defaultFromStyle(Typeface.BOLD));
     }
 

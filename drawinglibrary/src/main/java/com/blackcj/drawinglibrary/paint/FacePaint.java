@@ -22,6 +22,8 @@ public class FacePaint {
     public Paint bitmapPaint;
     public Paint textPaint;
 
+    protected float mRatio = 1;
+
 
     public FacePaint() {
         init();
@@ -44,7 +46,7 @@ public class FacePaint {
 
     public void setDefaultPaint() {
 
-        backgroundPaint.setColor(Color.YELLOW);
+        backgroundPaint.setColor(Color.WHITE);
 
         borderPaint.setColor(Color.BLACK);
         borderPaint.setStyle(Paint.Style.STROKE);
@@ -72,8 +74,15 @@ public class FacePaint {
         mSecondPaint.setStrokeCap(Paint.Cap.ROUND);
 
         textPaint.setColor(Color.BLACK);
-        textPaint.setTextSize(24);
+        textPaint.setTextSize(16 * mRatio);
         textPaint.setTypeface(Typeface.defaultFromStyle(Typeface.BOLD));
+    }
+
+    public void setRatio(float ratio) {
+        mRatio = ratio;
+        if(textPaint != null) {
+            textPaint.setTextSize(16 * mRatio);
+        }
     }
 
     public void setAntiAlias(boolean value) {

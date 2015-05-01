@@ -33,12 +33,23 @@ import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
 import android.text.format.Time;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
 
+import com.blackcj.drawinglibrary.Constants;
 import com.blackcj.drawinglibrary.WatchFace;
 import com.blackcj.drawinglibrary.WatchFaceFactory;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.wearable.DataApi;
+import com.google.android.gms.wearable.DataEvent;
+import com.google.android.gms.wearable.DataEventBuffer;
+import com.google.android.gms.wearable.DataItem;
+import com.google.android.gms.wearable.DataMap;
+import com.google.android.gms.wearable.DataMapItem;
+import com.google.android.gms.wearable.Wearable;
 
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
@@ -63,7 +74,8 @@ public class AnalogWatchFaceService extends CanvasWatchFaceService {
         return new Engine();
     }
 
-    private class Engine extends CanvasWatchFaceService.Engine {
+    private class Engine extends CanvasWatchFaceService.Engine implements DataApi.DataListener,
+            GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
         static final int MSG_UPDATE_TIME = 0;
 
         private WatchFace watchFace;
@@ -92,6 +104,12 @@ public class AnalogWatchFaceService extends CanvasWatchFaceService {
             }
         };
 
+        GoogleApiClient mGoogleApiClient = new GoogleApiClient.Builder(AnalogWatchFaceService.this)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .addApi(Wearable.API)
+                .build();
+
         final BroadcastReceiver mTimeZoneReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -118,7 +136,16 @@ public class AnalogWatchFaceService extends CanvasWatchFaceService {
 
                 Drawable hourDrawable = resources.getDrawable(com.blackcj.drawinglibrary.R.drawable.hand_hour_normal);
                 watchFace.setHourHand(hourDrawable);
+
+                watchFace.setRatio(getRatio(AnalogWatchFaceService.this));
             }
+        }
+
+
+        public float getRatio(Context context){
+            Resources resources = context.getResources();
+            DisplayMetrics metrics = resources.getDisplayMetrics();
+            return (metrics.densityDpi / 160f);
         }
 
         /**
@@ -144,6 +171,7 @@ public class AnalogWatchFaceService extends CanvasWatchFaceService {
                     .build());
             if(watchFace == null) {
                 watchFace = WatchFaceFactory.getWatchFace(WatchFaceFactory.SQUARE_TYPE);
+                watchFace.setRatio(getRatio(AnalogWatchFaceService.this));
             }
 
             Resources resources = AnalogWatchFaceService.this.getResources();
@@ -237,6 +265,7 @@ public class AnalogWatchFaceService extends CanvasWatchFaceService {
             }
 
             if (visible) {
+                mGoogleApiClient.connect();
                 registerReceiver();
 
                 // Update time zone in case it changed while we weren't visible.
@@ -244,6 +273,10 @@ public class AnalogWatchFaceService extends CanvasWatchFaceService {
                 mTime.setToNow();
             } else {
                 unregisterReceiver();
+                if (mGoogleApiClient != null && mGoogleApiClient.isConnected()) {
+                    Wearable.DataApi.removeListener(mGoogleApiClient, this);
+                    mGoogleApiClient.disconnect();
+                }
             }
 
             // Whether the timer should be running depends on whether we're visible (as well as
@@ -290,5 +323,116 @@ public class AnalogWatchFaceService extends CanvasWatchFaceService {
             return isVisible() && !isInAmbientMode();
         }
 
+        private void updateConfigDataItemAndUiOnStartup() {
+            AnalogWatchFaceUtil.fetchConfigDataMap(mGoogleApiClient,
+                    new AnalogWatchFaceUtil.FetchConfigDataMapCallback() {
+                        @Override
+                        public void onConfigDataMapFetched(DataMap startupConfig) {
+                            // If the DataItem hasn't been created yet or some keys are missing,
+                            // use the default values.
+                            setDefaultValuesForMissingConfigKeys(startupConfig);
+                            AnalogWatchFaceUtil.putConfigDataItem(mGoogleApiClient, startupConfig);
+
+                            updateUiForConfigDataMap(startupConfig);
+                        }
+                    }
+            );
+        }
+
+        private void setDefaultValuesForMissingConfigKeys(DataMap config) {
+            addIntKeyIfMissing(config, Constants.KEY_BACKGROUND_COLOR,
+                    AnalogWatchFaceUtil.COLOR_VALUE_DEFAULT_AND_AMBIENT_BACKGROUND);
+        }
+
+        private void addIntKeyIfMissing(DataMap config, String key, int color) {
+            if (!config.containsKey(key)) {
+                config.putInt(key, color);
+            }
+        }
+
+        @Override // DataApi.DataListener
+        public void onDataChanged(DataEventBuffer dataEvents) {
+            try {
+                for (DataEvent dataEvent : dataEvents) {
+                    if (dataEvent.getType() != DataEvent.TYPE_CHANGED) {
+                        continue;
+                    }
+
+                    DataItem dataItem = dataEvent.getDataItem();
+                    if (!dataItem.getUri().getPath().equals(
+                            Constants.PATH_WITH_FEATURE)) {
+                        continue;
+                    }
+
+                    DataMapItem dataMapItem = DataMapItem.fromDataItem(dataItem);
+                    DataMap config = dataMapItem.getDataMap();
+                    if (Log.isLoggable(TAG, Log.DEBUG)) {
+                        Log.d(TAG, "Config DataItem updated:" + config);
+                    }
+                    updateUiForConfigDataMap(config);
+                }
+            } finally {
+                dataEvents.close();
+            }
+        }
+
+        private void updateUiForConfigDataMap(final DataMap config) {
+            boolean uiUpdated = false;
+            for (String configKey : config.keySet()) {
+                if (!config.containsKey(configKey)) {
+                    continue;
+                }
+                int color = config.getInt(configKey);
+                if (Log.isLoggable(TAG, Log.DEBUG)) {
+                    Log.d(TAG, "Found watch face config key: " + configKey + " -> "
+                            + Integer.toHexString(color));
+                }
+                if (updateUiForKey(configKey, color)) {
+                    uiUpdated = true;
+                }
+            }
+            if (uiUpdated) {
+                invalidate();
+            }
+        }
+
+        /**
+         * Updates the color of a UI item according to the given {@code configKey}. Does nothing if
+         * {@code configKey} isn't recognized.
+         *
+         * @return whether UI has been updated
+         */
+        private boolean updateUiForKey(String configKey, int color) {
+            if (configKey.equals(Constants.KEY_BACKGROUND_COLOR)) {
+                watchFace.setBackgroundColor(color);
+            } else {
+                Log.w(TAG, "Ignoring unknown config key: " + configKey);
+                return false;
+            }
+            return true;
+        }
+
+        @Override  // GoogleApiClient.ConnectionCallbacks
+        public void onConnected(Bundle connectionHint) {
+            if (Log.isLoggable(TAG, Log.DEBUG)) {
+                Log.d(TAG, "onConnected: " + connectionHint);
+            }
+            Wearable.DataApi.addListener(mGoogleApiClient, Engine.this);
+            updateConfigDataItemAndUiOnStartup();
+        }
+
+        @Override  // GoogleApiClient.ConnectionCallbacks
+        public void onConnectionSuspended(int cause) {
+            if (Log.isLoggable(TAG, Log.DEBUG)) {
+                Log.d(TAG, "onConnectionSuspended: " + cause);
+            }
+        }
+
+        @Override  // GoogleApiClient.OnConnectionFailedListener
+        public void onConnectionFailed(ConnectionResult result) {
+            if (Log.isLoggable(TAG, Log.DEBUG)) {
+                Log.d(TAG, "onConnectionFailed: " + result);
+            }
+        }
     }
 }

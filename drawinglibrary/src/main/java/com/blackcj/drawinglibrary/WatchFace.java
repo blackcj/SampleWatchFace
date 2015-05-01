@@ -10,6 +10,8 @@ import android.graphics.Shader;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.text.format.Time;
+import android.util.Log;
+
 import com.blackcj.drawinglibrary.paint.FacePaint;
 
 
@@ -22,19 +24,25 @@ public abstract class WatchFace implements IWatchFace {
 
     protected String[] numbers = {"3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "1", "2"};
 
+    public static int SMALL_TICK_LENGTH = 8;
+    public static int LARGE_TICK_LENGTH = 12;
+    public static int MARGIN = 8;
+    public static int MARGIN_TEXT = 22;
+
     protected int faceWidth;
     protected int faceHeight;
     protected int halfWidth;
     protected int halfHeight;
-    protected int margin = 20;
-    protected int textMargin = 35;
+    protected float mRatio = 1;
+    protected int margin = (int)(MARGIN * mRatio);
+    protected int textMargin = (int)(MARGIN_TEXT * mRatio);;
 
     protected RectF backgroundRect;
     protected RectF smallTickMask;
-    protected int smallTickLength = 20;
+    protected int smallTickLength = (int)(SMALL_TICK_LENGTH * mRatio);
 
     protected RectF largeTickMask;
-    protected int largeTickLength = 30;
+    protected int largeTickLength = (int)(LARGE_TICK_LENGTH * mRatio);
 
     protected RectF borderRect;
     protected int borderThickness = 2;
@@ -99,7 +107,9 @@ public abstract class WatchFace implements IWatchFace {
         largeTickMask = new RectF(largeTickLength,largeTickLength,faceWidth - largeTickLength, faceHeight - largeTickLength);
         if(facePaint != null) {
             setRadialColor(radialColor);
+            facePaint.setRatio(mRatio * (280.0f / faceWidth));
         }
+        setRatio(mRatio);
     }
 
     public void drawRadialGradient(final Canvas canvas) {
@@ -186,6 +196,19 @@ public abstract class WatchFace implements IWatchFace {
             matrix.postScale(scale, scale);
             matrix.postTranslate(px, py);
             canvas.drawBitmap(hourHand, matrix, facePaint.bitmapPaint);
+        }
+    }
+
+    public void setRatio(float ratio) {
+        mRatio = ratio;
+        if(facePaint != null) {
+            facePaint.setRatio(mRatio);
+        }
+        if(faceWidth != 4) {
+            margin = (int) (MARGIN * mRatio * (280.0f / faceWidth));
+            textMargin = (int) (MARGIN_TEXT * mRatio * (280.0f / faceWidth));
+            smallTickLength = (int) (SMALL_TICK_LENGTH * mRatio * (280.0f / faceWidth));
+            largeTickLength = (int) (LARGE_TICK_LENGTH * mRatio * (280.0f / faceWidth));
         }
     }
 

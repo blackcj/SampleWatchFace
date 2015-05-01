@@ -7,6 +7,7 @@ import android.content.res.Resources;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -102,6 +103,7 @@ public class MainFragment extends Fragment implements AdapterView.OnItemSelected
     @Override
     public void onDetach() {
         sender = null;
+        super.onDetach();
     }
 
     // PREFERENCES
@@ -192,6 +194,29 @@ public class MainFragment extends Fragment implements AdapterView.OnItemSelected
 
         Drawable hourDrawable = resources.getDrawable(com.blackcj.drawinglibrary.R.drawable.hand_hour_normal);
         drawView.watchFace.setHourHand(hourDrawable);
+
+        drawView.watchFace.setRatio(getRatio(this.getActivity()));
+        drawView.invalidate();
+    }
+
+    public float getRatio(Context context){
+        Resources resources = context.getResources();
+        DisplayMetrics metrics = resources.getDisplayMetrics();
+        return (metrics.densityDpi / 160f);
+    }
+
+    public static float convertDpToPixel(float dp, Context context){
+        Resources resources = context.getResources();
+        DisplayMetrics metrics = resources.getDisplayMetrics();
+        float px = dp * (metrics.densityDpi / 160f);
+        return px;
+    }
+
+    public static float convertPixelsToDp(float px, Context context){
+        Resources resources = context.getResources();
+        DisplayMetrics metrics = resources.getDisplayMetrics();
+        float dp = px / (metrics.densityDpi / 160f);
+        return dp;
     }
 
     public void onNothingSelected(AdapterView<?> parent) {
